@@ -1,0 +1,20 @@
+{
+  "name": "com.shtif.rendervisualiser",
+  "displayName": "Render Visualiser",
+  "version": "0.1.0",
+  "unity": "2020.3",
+  "description": "Render Visualiser tool for visualising various aspects of rendering for URP",
+  "author": {
+	"name": "Peter @sHTiF Stefcek",
+	"email": "psthif@gmail.com"
+  },
+  "keywords": [ 
+	"package",
+	"unity",
+	"visualiser",
+	"rendering"
+  ],
+  "dependencies": {
+	"com.unity.render-pipelines.universal": "10.8.1"
+  }
+}
