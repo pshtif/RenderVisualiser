@@ -1,2 +1,2 @@
-# RenderVisualiser
-Unity tool for various render visualization modes.
+# Render Visualiser URP
+Unity tool for various render visualization modes in URP

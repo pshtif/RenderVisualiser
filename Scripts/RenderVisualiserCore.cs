@@ -2,7 +2,6 @@
  *	Created by:  Peter @sHTiF Stefcek
  */
 
-using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
