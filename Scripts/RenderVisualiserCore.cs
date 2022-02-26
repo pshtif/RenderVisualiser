@@ -23,11 +23,13 @@ namespace RenderVisualiser
 
             if (overdraw)
             {
-                EnableOverdrawFeature();
+                EnableOpaqueOverdrawFeature();
+                EnableTransparentOverdrawFeature();
             }
             else
             {
-                DisableOverdrawFeature();
+                DisableOpaqueOverdrawFeature();
+                DisableTransparentOverdrawFeature();
             }
         }
 
@@ -38,19 +40,18 @@ namespace RenderVisualiser
             return true;
         }
 
-        static void EnableOverdrawFeature()
+        static void EnableOpaqueOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            FieldInfo propertyInfo = renderPipeline.GetType()
-                .GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
-            ForwardRendererData rendererData = ((ScriptableRendererData[]) propertyInfo?.GetValue(renderPipeline))?[0] as ForwardRendererData;
+            ForwardRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = 0;
             rendererData.transparentLayerMask = 0;
             
             var feature = new RenderObjects();
-            feature.name = "Overdraw";
+            feature.name = "OverdrawOpaque";
             feature.settings.Event = RenderPassEvent.AfterRendering;
+            feature.settings.filterSettings.RenderQueueType = RenderQueueType.Opaque;
             feature.settings.filterSettings.LayerMask = ~0;
             
             var material = new Material(Shader.Find("RenderVisualiser/OverdrawShader"));
@@ -62,20 +63,62 @@ namespace RenderVisualiser
             EditorUtility.SetDirty(renderPipeline);
         }
         
-        static void DisableOverdrawFeature()
+        static void DisableOpaqueOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            FieldInfo propertyInfo = renderPipeline.GetType()
-                .GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
-            ForwardRendererData rendererData = ((ScriptableRendererData[]) propertyInfo?.GetValue(renderPipeline))?[0] as ForwardRendererData;
+            ForwardRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = ~0;
             rendererData.transparentLayerMask = ~0;
             
-            rendererData.rendererFeatures.RemoveAll(f => f.name == "Overdraw");
+            rendererData.rendererFeatures.RemoveAll(f => f.name == "OverdrawOpaque");
             
             EditorUtility.SetDirty(rendererData);
             EditorUtility.SetDirty(renderPipeline);
+        }
+        
+        static void EnableTransparentOverdrawFeature()
+        {
+            var renderPipeline = GraphicsSettings.currentRenderPipeline;
+            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+
+            rendererData.opaqueLayerMask = 0;
+            rendererData.transparentLayerMask = 0;
+            
+            var feature = new RenderObjects();
+            feature.name = "OverdrawTransparent";
+            feature.settings.Event = RenderPassEvent.AfterRendering;
+            feature.settings.filterSettings.RenderQueueType = RenderQueueType.Transparent;
+            feature.settings.filterSettings.LayerMask = ~0;
+            
+            var material = new Material(Shader.Find("RenderVisualiser/OverdrawShader"));
+            material.color = new Color(0.2f, 0.04f, 0.04f);
+            feature.settings.overrideMaterial = material;
+            rendererData.rendererFeatures.Add(feature);
+            
+            EditorUtility.SetDirty(rendererData);
+            EditorUtility.SetDirty(renderPipeline);
+        }
+        
+        static void DisableTransparentOverdrawFeature()
+        {
+            var renderPipeline = GraphicsSettings.currentRenderPipeline;
+            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+
+            rendererData.opaqueLayerMask = ~0;
+            rendererData.transparentLayerMask = ~0;
+            
+            rendererData.rendererFeatures.RemoveAll(f => f.name == "OverdrawTransparent");
+            
+            EditorUtility.SetDirty(rendererData);
+            EditorUtility.SetDirty(renderPipeline);
+        }
+
+        static ForwardRendererData GetRendererData(RenderPipelineAsset p_renderPipeline)
+        {
+            FieldInfo propertyInfo = p_renderPipeline.GetType()
+                .GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
+            return ((ScriptableRendererData[]) propertyInfo?.GetValue(p_renderPipeline))?[0] as ForwardRendererData;
         }
     }
 }
