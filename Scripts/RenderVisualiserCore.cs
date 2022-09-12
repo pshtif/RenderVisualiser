@@ -2,6 +2,7 @@
  *	Created by:  Peter @sHTiF Stefcek
  */
 
+using System.Collections.Generic;
 using System.Reflection;
 using UnityEditor;
 using UnityEngine;
@@ -11,8 +12,40 @@ using UnityEngine.Rendering.Universal;
 
 namespace RenderVisualiser
 {
+    [InitializeOnLoad]
     public class RenderVisualiserCore
     {
+        static RenderVisualiserCore()
+        {
+            EditorApplication.delayCall += Initialize;
+        }
+
+        private static void Initialize()
+        {
+            var overdrawMode = SceneView.GetBuiltinCameraMode(DrawCameraMode.Overdraw);
+            var info = typeof(SceneView).GetProperty("userDefinedModes", BindingFlags.Static | BindingFlags.NonPublic);
+            var modes = (List<SceneView.CameraMode>)info.GetValue(null);
+            
+            if (!modes.Exists(cm => cm.name.Equals(overdrawMode.name) && cm.section.Equals(overdrawMode.section)))
+            {
+                SceneView.AddCameraMode(overdrawMode.name, overdrawMode.section);
+            }
+            
+            foreach (SceneView sceneView in SceneView.sceneViews)
+            {
+                sceneView.onCameraModeChanged += cameraMode =>
+                {
+                    OnCameraModeChanged(sceneView);
+                };
+
+                if (sceneView.cameraMode.name.Equals(overdrawMode.name) &&
+                    sceneView.cameraMode.section.Equals(overdrawMode.section))
+                {
+                    OnCameraModeChanged(sceneView);
+                }
+            }
+        }
+
         private static bool overdraw = false;
 
         [MenuItem("Tools/Render Visualiser/Overdraw")]
@@ -42,7 +75,7 @@ namespace RenderVisualiser
         static void EnableOpaqueOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+            UniversalRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = 0;
             rendererData.transparentLayerMask = 0;
@@ -65,7 +98,7 @@ namespace RenderVisualiser
         static void DisableOpaqueOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+            UniversalRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = ~0;
             rendererData.transparentLayerMask = ~0;
@@ -79,7 +112,7 @@ namespace RenderVisualiser
         static void EnableTransparentOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+            UniversalRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = 0;
             rendererData.transparentLayerMask = 0;
@@ -102,7 +135,7 @@ namespace RenderVisualiser
         static void DisableTransparentOverdrawFeature()
         {
             var renderPipeline = GraphicsSettings.currentRenderPipeline;
-            ForwardRendererData rendererData = GetRendererData(renderPipeline);
+            UniversalRendererData rendererData = GetRendererData(renderPipeline);
 
             rendererData.opaqueLayerMask = ~0;
             rendererData.transparentLayerMask = ~0;
@@ -113,11 +146,36 @@ namespace RenderVisualiser
             EditorUtility.SetDirty(renderPipeline);
         }
 
-        static ForwardRendererData GetRendererData(RenderPipelineAsset p_renderPipeline)
+        static UniversalRendererData GetRendererData(RenderPipelineAsset p_renderPipeline)
         {
             FieldInfo propertyInfo = p_renderPipeline.GetType()
                 .GetField("m_RendererDataList", BindingFlags.Instance | BindingFlags.NonPublic);
-            return ((ScriptableRendererData[]) propertyInfo?.GetValue(p_renderPipeline))?[0] as ForwardRendererData;
+            return ((ScriptableRendererData[]) propertyInfo?.GetValue(p_renderPipeline))?[0] as UniversalRendererData;
+        }
+        
+        private static void OnCameraModeChanged(SceneView p_sceneView)
+        {
+            var overdrawMode = SceneView.GetBuiltinCameraMode(DrawCameraMode.Overdraw);
+            SceneView.CameraMode cameraMode = p_sceneView.cameraMode;
+
+            if (cameraMode.name.Equals(overdrawMode.name))
+            {
+                if (!overdraw)
+                {
+                    EnableOpaqueOverdrawFeature();
+                    EnableTransparentOverdrawFeature();
+                    overdraw = true;
+                }
+            }
+            else
+            {
+                if (overdraw)
+                {
+                    DisableOpaqueOverdrawFeature();
+                    DisableTransparentOverdrawFeature();
+                    overdraw = false;
+                }
+            }
         }
     }
 }
