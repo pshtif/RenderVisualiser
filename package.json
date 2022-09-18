@@ -1,7 +1,7 @@
 {
   "name": "com.shtif.rendervisualiser",
   "displayName": "Render Visualiser",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "unity": "2020.3",
   "description": "Render Visualiser tool for visualising various aspects of rendering for URP",
   "author": {
